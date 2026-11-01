@@ -1,0 +1,983 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>KAWACH | Flood Monitoring</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700;800;900&family=DM+Mono:wght@400;500&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --bg: #080d18;
+            --panel: #101a2a;
+            --panel-light: #142136;
+            --border: #24334b;
+
+            --blue: #3285ff;
+            --blue-glow: rgba(50, 133, 255, 0.3);
+
+            --red: #ff465c;
+            --yellow: #ffbd4a;
+            --green: #32d69a;
+
+            --text: #e9f0fc;
+            --muted: #8190a8;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background:
+                radial-gradient(ellipse at 50% -20%, #152b4a 0%, transparent 55%),
+                var(--bg);
+
+            color: var(--text);
+            font-family: 'Inter', sans-serif;
+            min-height: 100vh;
+        }
+
+        /* NAVBAR */
+
+        .navbar {
+            height: 76px;
+            padding: 0 5%;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid var(--border);
+            background: rgba(8, 13, 24, 0.85);
+        }
+
+        .brand {
+            font-family: 'Barlow Condensed', sans-serif;
+            font-weight: 900;
+            font-size: 37px;
+            letter-spacing: 3px;
+            color: white;
+        }
+
+        .brand span {
+            color: var(--blue);
+        }
+
+        .brand-sub {
+            color: var(--muted);
+            font-family: 'DM Mono', monospace;
+            font-size: 10px;
+            letter-spacing: 2px;
+            margin-top: -5px;
+        }
+
+        .system-status {
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            font-family: 'DM Mono', monospace;
+            font-size: 11px;
+            color: var(--muted);
+        }
+
+        .status-dot {
+            height: 8px;
+            width: 8px;
+            border-radius: 50%;
+            background: var(--red);
+        }
+
+        .status-dot.connected {
+            background: var(--green);
+            box-shadow: 0 0 10px var(--green);
+        }
+
+        /* ONLINE BAR */
+
+        .online-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 18px 5%;
+            border-bottom: 1px solid var(--border);
+            background: rgba(16, 26, 42, 0.7);
+        }
+
+        .online-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .online-count {
+            font-size: 24px;
+            font-weight: 800;
+            color: var(--green);
+        }
+
+        .online-label {
+            font-size: 12px;
+            color: var(--muted);
+            letter-spacing: 1px;
+        }
+
+        .node-indicators {
+            display: flex;
+            gap: 8px;
+        }
+
+        .node-indicator {
+            padding: 6px 11px;
+            border-radius: 5px;
+            font-family: 'DM Mono', monospace;
+            font-size: 10px;
+            background: var(--panel-light);
+            color: var(--muted);
+            border: 1px solid var(--border);
+        }
+
+        .node-indicator.online {
+            color: var(--green);
+            border-color: rgba(50, 214, 154, 0.3);
+        }
+
+        .node-indicator.offline {
+            color: var(--red);
+            border-color: rgba(255, 70, 92, 0.3);
+        }
+
+        /* MAIN LAYOUT */
+
+        .main {
+            max-width: 1500px;
+            margin: auto;
+            padding: 35px 5%;
+            display: grid;
+            grid-template-columns: minmax(0, 1.7fr) minmax(280px, 0.8fr);
+            gap: 22px;
+        }
+
+        .panel {
+            background: rgba(16, 26, 42, 0.85);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .panel-header {
+            padding: 21px 23px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .panel-title {
+            font-size: 13px;
+            font-weight: 700;
+            letter-spacing: 1.2px;
+        }
+
+        .panel-subtitle {
+            color: var(--muted);
+            font-size: 10px;
+            font-family: 'DM Mono', monospace;
+            margin-top: 5px;
+        }
+
+        .live-label {
+            color: var(--green);
+            font-family: 'DM Mono', monospace;
+            font-size: 10px;
+        }
+
+        /* NODE VISUALIZATION */
+
+        .nodes-container {
+            padding: 30px 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 28px;
+        }
+
+        .node {
+            position: relative;
+            background: var(--panel-light);
+            border: 1px solid var(--border);
+            border-radius: 9px;
+            padding: 19px;
+            overflow: hidden;
+        }
+
+        .node-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .node-name {
+            font-weight: 700;
+            font-size: 14px;
+        }
+
+        .node-state {
+            font-family: 'DM Mono', monospace;
+            font-size: 10px;
+            color: var(--green);
+        }
+
+        .node-state.offline {
+            color: var(--red);
+        }
+
+        .telemetry {
+            position: relative;
+            height: 70px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .track {
+            position: absolute;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: rgba(50, 133, 255, 0.15);
+        }
+
+        .signal {
+            position: absolute;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: var(--blue);
+            transform-origin: center;
+            border-radius: 50px;
+            box-shadow: 0 0 12px var(--blue-glow);
+            transition: height 0.5s ease, background 0.3s;
+        }
+
+        .signal.danger {
+            background: var(--red);
+            box-shadow: 0 0 15px rgba(255, 70, 92, 0.5);
+        }
+
+        .node-point {
+            position: relative;
+            z-index: 2;
+            width: 15px;
+            height: 15px;
+            background: var(--blue);
+            border: 3px solid #a6ccff;
+            border-radius: 50%;
+            box-shadow: 0 0 16px var(--blue);
+            transition: background 0.3s;
+        }
+
+        .node-point.danger {
+            background: var(--red);
+            border-color: #ffabb4;
+            box-shadow: 0 0 18px var(--red);
+        }
+
+        .hazard-glow {
+            position: absolute;
+            z-index: 1;
+            width: 75px;
+            height: 75px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(255,70,92,0.28), transparent 70%);
+            display: none;
+        }
+
+        .hazard-glow.active {
+            display: block;
+        }
+
+        .distance-label {
+            position: absolute;
+            right: 0;
+            bottom: -2px;
+            font-family: 'DM Mono', monospace;
+            font-size: 10px;
+            color: var(--muted);
+        }
+
+        .node-metrics {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-top: 17px;
+        }
+
+        .metric {
+            background: rgba(8, 13, 24, 0.5);
+            padding: 11px;
+            border-radius: 6px;
+        }
+
+        .metric-label {
+            color: var(--muted);
+            font-size: 9px;
+            letter-spacing: 1px;
+            margin-bottom: 6px;
+        }
+
+        .metric-value {
+            font-family: 'DM Mono', monospace;
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        .danger-text {
+            color: var(--red);
+        }
+
+        .safe-text {
+            color: var(--green);
+        }
+
+        .muted-text {
+            color: var(--muted);
+        }
+
+        /* NOTIFICATIONS */
+
+        .notifications {
+            padding: 18px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            max-height: 700px;
+            overflow-y: auto;
+        }
+
+        .notification {
+            padding: 14px;
+            border-radius: 7px;
+            border-left: 3px solid var(--red);
+            background: rgba(255, 70, 92, 0.07);
+            animation: appear 0.3s ease;
+        }
+
+        .notification.rain {
+            border-color: var(--yellow);
+            background: rgba(255, 189, 74, 0.07);
+        }
+
+        .notification.offline {
+            border-color: #ff465c;
+        }
+
+        .notification-title {
+            font-size: 12px;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+
+        .notification-description {
+            color: var(--muted);
+            font-size: 11px;
+            line-height: 1.5;
+        }
+
+        .notification-time {
+            font-family: 'DM Mono', monospace;
+            color: #66758c;
+            font-size: 9px;
+            margin-top: 10px;
+        }
+
+        .empty-notifications {
+            color: var(--muted);
+            font-size: 12px;
+            text-align: center;
+            padding: 35px 10px;
+        }
+
+        @keyframes appear {
+            from {
+                opacity: 0;
+                transform: translateY(5px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* RESPONSIVE */
+
+        @media (max-width: 850px) {
+            .main {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 550px) {
+            .navbar {
+                padding: 0 18px;
+            }
+
+            .online-bar {
+                padding: 15px 18px;
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 15px;
+            }
+
+            .main {
+                padding: 20px 14px;
+            }
+
+            .node-indicators {
+                flex-wrap: wrap;
+            }
+
+            .node-metrics {
+                gap: 6px;
+            }
+
+            .metric {
+                padding: 8px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- NAVBAR -->
+
+    <nav class="navbar">
+        <div>
+            <div class="brand">KAW<span>A</span>CH</div>
+            <div class="brand-sub">INTELLIGENT FLOOD MONITORING</div>
+        </div>
+
+        <div class="system-status">
+            <div class="status-dot" id="connectionDot"></div>
+            <span id="connectionText">CONNECTING</span>
+        </div>
+    </nav>
+
+    <!-- ONLINE NODES BAR -->
+
+    <section class="online-bar">
+        <div class="online-info">
+            <div class="online-count" id="onlineCount">0/3</div>
+            <div class="online-label">NODES ONLINE</div>
+        </div>
+
+        <div class="node-indicators" id="nodeIndicators">
+            <span class="node-indicator offline">NODE 01</span>
+            <span class="node-indicator offline">NODE 02</span>
+            <span class="node-indicator offline">NODE 03</span>
+        </div>
+    </section>
+
+    <!-- MAIN CONTENT -->
+
+    <main class="main">
+
+        <!-- LEFT: NODE VISUALIZATION -->
+
+        <section class="panel">
+            <div class="panel-header">
+                <div>
+                    <div class="panel-title">SENSOR NETWORK</div>
+                    <div class="panel-subtitle">REAL-TIME TELEMETRY</div>
+                </div>
+
+                <div class="live-label">● LIVE DATA</div>
+            </div>
+
+            <div class="nodes-container" id="nodesContainer">
+
+                <!-- Generated dynamically -->
+
+            </div>
+        </section>
+
+        <!-- RIGHT: NOTIFICATIONS -->
+
+        <section class="panel">
+            <div class="panel-header">
+                <div>
+                    <div class="panel-title">ALERT CENTER</div>
+                    <div class="panel-subtitle">ACTIVE NODE EVENTS</div>
+                </div>
+
+                <div class="live-label" id="alertCount">0 ACTIVE</div>
+            </div>
+
+            <div class="notifications" id="notifications">
+                <div class="empty-notifications">
+                    Waiting for sensor data...
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <script>
+        // ------------------------------------------
+        // CONFIGURATION
+        // ------------------------------------------
+
+        const WS_URL = 'wss://kawach.utkarshc.net/ws';
+
+        const MAX_NODES = 3;
+
+        const nodes = Array.from(
+            { length: MAX_NODES },
+            (_, i) => ({
+                nodeId: i + 1,
+                distance: 0,
+                rain: false,
+                flooded: false,
+                offline: true
+            })
+        );
+
+        let ws;
+        let reconnectTimer;
+
+        // ------------------------------------------
+        // DOM ELEMENTS
+        // ------------------------------------------
+
+        const nodesContainer =
+            document.getElementById('nodesContainer');
+
+        const notifications =
+            document.getElementById('notifications');
+
+        // ------------------------------------------
+        // NODE INITIALIZATION
+        // ------------------------------------------
+
+        function initializeNodes() {
+            nodesContainer.innerHTML = '';
+
+            nodes.forEach(node => {
+                const element = document.createElement('div');
+
+                element.className = 'node';
+                element.id = `node-${node.nodeId}`;
+
+                element.innerHTML = `
+                    <div class="node-top">
+                        <div class="node-name">
+                            SENSOR NODE 0${node.nodeId}
+                        </div>
+
+                        <div class="node-state offline"
+                             id="state-${node.nodeId}">
+                            ● OFFLINE
+                        </div>
+                    </div>
+
+                    <div class="telemetry">
+
+                        <div class="track"></div>
+
+                        <div class="signal"
+                             id="signal-${node.nodeId}">
+                        </div>
+
+                        <div class="hazard-glow"
+                             id="glow-${node.nodeId}">
+                        </div>
+
+                        <div class="node-point"
+                             id="point-${node.nodeId}">
+                        </div>
+
+                        <div class="distance-label"
+                             id="distance-${node.nodeId}">
+                            -- cm
+                        </div>
+
+                    </div>
+
+                    <div class="node-metrics">
+
+                        <div class="metric">
+                            <div class="metric-label">DISTANCE</div>
+                            <div class="metric-value"
+                                 id="metric-distance-${node.nodeId}">
+                                -- cm
+                            </div>
+                        </div>
+
+                        <div class="metric">
+                            <div class="metric-label">RAIN SENSOR</div>
+                            <div class="metric-value"
+                                 id="metric-rain-${node.nodeId}">
+                                UNKNOWN
+                            </div>
+                        </div>
+
+                        <div class="metric">
+                            <div class="metric-label">WATER STATUS</div>
+                            <div class="metric-value"
+                                 id="metric-flood-${node.nodeId}">
+                                UNKNOWN
+                            </div>
+                        </div>
+
+                    </div>
+                `;
+
+                nodesContainer.appendChild(element);
+            });
+        }
+
+        // ------------------------------------------
+        // UPDATE NODE UI
+        // ------------------------------------------
+
+        function updateNodeUI(node) {
+            const id = node.nodeId;
+
+            const state = document.getElementById(`state-${id}`);
+            const signal = document.getElementById(`signal-${id}`);
+            const point = document.getElementById(`point-${id}`);
+            const glow = document.getElementById(`glow-${id}`);
+
+            const distanceLabel =
+                document.getElementById(`distance-${id}`);
+
+            const distanceMetric =
+                document.getElementById(`metric-distance-${id}`);
+
+            const rainMetric =
+                document.getElementById(`metric-rain-${id}`);
+
+            const floodMetric =
+                document.getElementById(`metric-flood-${id}`);
+
+            const hazardous = node.flooded || node.rain;
+
+            // Node state
+            state.textContent = node.offline
+                ? '● OFFLINE'
+                : '● ONLINE';
+
+            state.className = node.offline
+                ? 'node-state offline'
+                : 'node-state';
+
+            // Distance
+            distanceLabel.textContent =
+                node.offline ? '-- cm' : `${node.distance} cm`;
+
+            distanceMetric.textContent =
+                node.offline ? '-- cm' : `${node.distance} cm`;
+
+            // Rain
+            rainMetric.textContent = node.offline
+                ? 'UNKNOWN'
+                : node.rain ? 'DETECTED' : 'CLEAR';
+
+            rainMetric.className =
+                'metric-value ' +
+                (node.offline
+                    ? 'muted-text'
+                    : node.rain
+                        ? 'danger-text'
+                        : 'safe-text');
+
+            // Flood
+            floodMetric.textContent = node.offline
+                ? 'UNKNOWN'
+                : node.flooded ? 'FLOODED' : 'SAFE';
+
+            floodMetric.className =
+                'metric-value ' +
+                (node.offline
+                    ? 'muted-text'
+                    : node.flooded
+                        ? 'danger-text'
+                        : 'safe-text');
+
+            // Telemetry line thickness:
+            // Inversely proportional to distance.
+            //
+            // Nearer water = thicker line.
+            // More distant water = thinner line.
+
+            const distance = Math.max(0, Number(node.distance) || 0);
+
+            const thickness = node.offline
+                ? 2
+                : Math.min(18, Math.max(2, 100 / (distance + 1)));
+
+            signal.style.height = `${thickness}px`;
+
+            // Hazard indication
+            signal.classList.toggle(
+                'danger',
+                !node.offline && hazardous
+            );
+
+            point.classList.toggle(
+                'danger',
+                !node.offline && hazardous
+            );
+
+            glow.classList.toggle(
+                'active',
+                !node.offline && hazardous
+            );
+
+            if (node.offline) {
+                signal.style.opacity = '0.2';
+                point.style.opacity = '0.3';
+            } else {
+                signal.style.opacity = '1';
+                point.style.opacity = '1';
+            }
+        }
+
+        // ------------------------------------------
+        // UPDATE ONLINE BAR
+        // ------------------------------------------
+
+        function updateOnlineBar() {
+            const online = nodes.filter(
+                node => !node.offline
+            ).length;
+
+            document.getElementById('onlineCount')
+                .textContent = `${online}/${MAX_NODES}`;
+
+            const indicators =
+                document.getElementById('nodeIndicators');
+
+            indicators.innerHTML = '';
+
+            nodes.forEach(node => {
+                const badge = document.createElement('span');
+
+                badge.className =
+                    `node-indicator ${node.offline ? 'offline' : 'online'}`;
+
+                badge.textContent =
+                    `NODE 0${node.nodeId} · ${node.offline ? 'OFFLINE' : 'ONLINE'}`;
+
+                indicators.appendChild(badge);
+            });
+        }
+
+        // ------------------------------------------
+        // NOTIFICATION CENTER
+        // ------------------------------------------
+
+        function updateNotifications() {
+            notifications.innerHTML = '';
+
+            const alerts = [];
+
+            nodes.forEach(node => {
+                if (node.offline) {
+                    alerts.push({
+                        type: 'offline',
+                        title: `NODE 0${node.nodeId} OFFLINE`,
+                        description:
+                            'No communication received from this sensor node.'
+                    });
+
+                    return;
+                }
+
+                if (node.flooded) {
+                    alerts.push({
+                        type: 'flood',
+                        title: `NODE 0${node.nodeId} FLOOD WARNING`,
+                        description:
+                            `Water level reached ${node.distance} cm. Critical threshold crossed.`
+                    });
+                }
+
+                if (node.rain) {
+                    alerts.push({
+                        type: 'rain',
+                        title: `NODE 0${node.nodeId} RAIN DETECTED`,
+                        description:
+                            'Rain sensor has detected precipitation.'
+                    });
+                }
+            });
+
+            document.getElementById('alertCount')
+                .textContent = `${alerts.length} ACTIVE`;
+
+            if (alerts.length === 0) {
+                notifications.innerHTML = `
+                    <div class="empty-notifications">
+                        ✓ All sensor nodes operational.<br><br>
+                        No active alerts.
+                    </div>
+                `;
+
+                return;
+            }
+
+            alerts.forEach(alert => {
+                const element = document.createElement('div');
+
+                element.className =
+                    `notification ${
+                        alert.type === 'rain' ? 'rain' :
+                        alert.type === 'offline' ? 'offline' : ''
+                    }`;
+
+                const time = new Date().toLocaleTimeString();
+
+                element.innerHTML = `
+                    <div class="notification-title">
+                        ${alert.title}
+                    </div>
+
+                    <div class="notification-description">
+                        ${alert.description}
+                    </div>
+
+                    <div class="notification-time">
+                        ${time}
+                    </div>
+                `;
+
+                notifications.appendChild(element);
+            });
+        }
+
+        // ------------------------------------------
+        // PROCESS WEBSOCKET DATA
+        // ------------------------------------------
+
+        function updateDashboard(data) {
+            if (!Array.isArray(data)) {
+                console.error('Invalid WebSocket payload');
+                return;
+            }
+
+            data.forEach(incoming => {
+                const node = nodes.find(
+                    n => n.nodeId === Number(incoming.nodeId)
+                );
+
+                if (!node)
+                    return;
+
+                if (
+                    typeof incoming.distance !== 'number' ||
+                    typeof incoming.rain !== 'boolean' ||
+                    typeof incoming.flooded !== 'boolean' ||
+                    typeof incoming.offline !== 'boolean'
+                ) {
+                    console.warn('Invalid node data:', incoming);
+                    return;
+                }
+
+                node.distance = incoming.distance;
+                node.rain = incoming.rain;
+                node.flooded = incoming.flooded;
+                node.offline = incoming.offline;
+            });
+
+            nodes.forEach(updateNodeUI);
+
+            updateOnlineBar();
+            updateNotifications();
+        }
+
+        // ------------------------------------------
+        // WEBSOCKET CONNECTION
+        // ------------------------------------------
+
+        function connectWebSocket() {
+            clearTimeout(reconnectTimer);
+
+            if (
+                ws &&
+                (ws.readyState === WebSocket.OPEN ||
+                 ws.readyState === WebSocket.CONNECTING)
+            ) {
+                return;
+            }
+
+            setConnectionStatus(false, 'CONNECTING');
+
+            ws = new WebSocket(WS_URL);
+
+            ws.onopen = () => {
+                console.log('Connected to KAWACH WebSocket');
+
+                setConnectionStatus(true, 'CONNECTED');
+            };
+
+            ws.onmessage = event => {
+                try {
+                    const data = JSON.parse(event.data);
+
+                    updateDashboard(data);
+                } catch (error) {
+                    console.error('Invalid WebSocket JSON:', error);
+                }
+            };
+
+            ws.onclose = () => {
+                setConnectionStatus(false, 'DISCONNECTED');
+
+                reconnectTimer = setTimeout(
+                    connectWebSocket,
+                    3000
+                );
+            };
+
+            ws.onerror = error => {
+                console.error('WebSocket error:', error);
+                ws.close();
+            };
+        }
+
+        // ------------------------------------------
+        // CONNECTION INDICATOR
+        // ------------------------------------------
+
+        function setConnectionStatus(connected, text) {
+            document.getElementById('connectionDot')
+                .classList.toggle('connected', connected);
+
+            document.getElementById('connectionText')
+                .textContent = text;
+        }
+
+        // ------------------------------------------
+        // INITIALIZATION
+        // ------------------------------------------
+
+        initializeNodes();
+
+        updateOnlineBar();
+        updateNotifications();
+
+        connectWebSocket();
+
+    </script>
+
+</body>
+</html>
