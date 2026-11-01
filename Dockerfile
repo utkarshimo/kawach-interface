@@ -7,12 +7,12 @@ COPY package*.json ./
 
 RUN npm ci --omit=dev
 
-COPY server.js ./
-COPY public ./public
+COPY main.js ./
+COPY index.html ./
 
 ENV NODE_ENV=production
 ENV PORT=5123
 
 EXPOSE 5123
 
-CMD ["node", "server.js"]
+CMD ["node", "main.js"]
